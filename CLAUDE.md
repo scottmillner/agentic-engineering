@@ -155,6 +155,7 @@ Available as `/slash-commands` in Claude Code. Scripts are also runnable directl
 | unit-tests | `/unit-tests` | Runs library and generated code tests |
 | integration-tests | `/integration-tests` | Runs integration tests against test validator |
 | deploy-local | `/deploy-local` | Starts local validator and deploys the program |
+| stop-local | `/stop-local` | Stops the local test validator |
 
 Skills are defined in `.claude/skills/`.
 

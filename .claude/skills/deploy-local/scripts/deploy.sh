@@ -3,6 +3,8 @@ set -e
 
 PROGRAM_ID="48WQW8ZMQKJhV1FKnGrYVDMEoqc8XutQmvKuqcmRrKux"
 SO="target/deploy/solana_token.so"
+PROGRAM_KEYPAIR="target/deploy/solana_token-keypair.json"
+PAYER=$(solana-keygen pubkey ~/.config/solana/id.json)
 
 if [ ! -f "$SO" ]; then
   echo "[deploy-local] ERROR: Program .so file missing. Run /build first." >&2
@@ -17,7 +19,7 @@ if pgrep -f solana-test-validator > /dev/null; then
 fi
 
 echo "[deploy-local] Starting local validator..." >&2
-solana-test-validator --reset --quiet &
+solana-test-validator --reset --quiet --mint "$PAYER" &
 VALIDATOR_PID=$!
 
 # Wait for validator to be ready
@@ -35,7 +37,7 @@ for i in $(seq 1 30); do
 done
 
 echo "[deploy-local] Deploying program..." >&2
-solana program deploy "$SO" --program-id "$PROGRAM_ID" -u localhost
+solana program deploy "$SO" --program-id "$PROGRAM_KEYPAIR" -u localhost
 
 echo "[deploy-local] Deployment complete." >&2
 echo "[deploy-local] Validator PID: $VALIDATOR_PID" >&2
