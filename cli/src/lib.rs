@@ -5,13 +5,14 @@ use anchor_client::{
     anchor_lang::{declare_id, InstructionData, ToAccountMetas},
     solana_sdk::{
         instruction::Instruction,
+        pubkey::Pubkey,
         signature::{Keypair, Signer},
     },
     Program,
 };
 use anyhow::{Context, Result};
 use solana_system_interface::program as system_program;
-use std::{fs, rc::Rc};
+use std::{fs, rc::Rc, str::FromStr};
 
 declare_id!("48WQW8ZMQKJhV1FKnGrYVDMEoqc8XutQmvKuqcmRrKux");
 
@@ -74,6 +75,54 @@ pub fn init(
     println!("✓ Token mint initialized");
     println!("  Mint address: {}", mint.pubkey());
     println!("  Decimals: {}", decimals);
+    println!("  Transaction: {}", signature);
+
+    Ok(())
+}
+
+pub fn create_account(
+    program: &Program<Rc<Keypair>>,
+    payer: &Keypair,
+    mint: &str,
+    owner: Option<&str>,
+) -> Result<()> {
+    let mint_pubkey = Pubkey::from_str(mint).context("Invalid mint address")?;
+    let owner_pubkey = match owner {
+        Some(o) => Pubkey::from_str(o).context("Invalid owner address")?,
+        None => payer.pubkey(),
+    };
+
+    // Derive the PDA — must match seeds in the on-chain program
+    let (token_account_pubkey, _bump) = Pubkey::find_program_address(
+        &[b"token", owner_pubkey.as_ref(), mint_pubkey.as_ref()],
+        &ID,
+    );
+
+    let instruction_data = generated::create_token_account::CreateTokenAccount {};
+    let accounts = generated::create_token_account::Accounts {
+        mint: mint_pubkey,
+        token_account: token_account_pubkey,
+        owner: owner_pubkey,
+        payer: payer.pubkey(),
+        system_program: system_program::ID.to_bytes().into(),
+    };
+
+    let instruction = Instruction {
+        program_id: ID,
+        accounts: accounts.to_account_metas(None),
+        data: instruction_data.data(),
+    };
+
+    let signature = program
+        .request()
+        .instruction(instruction)
+        .send()
+        .context("Failed to send create_token_account transaction")?;
+
+    println!("✓ Token account created");
+    println!("  Token account: {}", token_account_pubkey);
+    println!("  Owner: {}", owner_pubkey);
+    println!("  Mint: {}", mint_pubkey);
     println!("  Transaction: {}", signature);
 
     Ok(())
