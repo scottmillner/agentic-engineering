@@ -128,6 +128,50 @@ pub fn create_account(
     Ok(())
 }
 
+pub fn mint_tokens(
+    program: &Program<Rc<Keypair>>,
+    payer: &Keypair,
+    mint: &str,
+    to: &str,
+    amount: u64,
+) -> Result<()> {
+    let mint_pubkey = Pubkey::from_str(mint).context("Invalid mint address")?;
+    let owner_pubkey = Pubkey::from_str(to).context("Invalid owner address")?;
+
+    // Derive the recipient's token account PDA
+    let (token_account_pubkey, _bump) = Pubkey::find_program_address(
+        &[b"token", owner_pubkey.as_ref(), mint_pubkey.as_ref()],
+        &ID,
+    );
+
+    let instruction_data = generated::mint_tokens::MintTokens { amount };
+    let accounts = generated::mint_tokens::Accounts {
+        mint: mint_pubkey,
+        token_account: token_account_pubkey,
+        authority: payer.pubkey(),
+    };
+
+    let instruction = Instruction {
+        program_id: ID,
+        accounts: accounts.to_account_metas(None),
+        data: instruction_data.data(),
+    };
+
+    let signature = program
+        .request()
+        .instruction(instruction)
+        .send()
+        .context("Failed to send mint_tokens transaction")?;
+
+    println!("✓ Tokens minted");
+    println!("  Token account: {}", token_account_pubkey);
+    println!("  Owner: {}", owner_pubkey);
+    println!("  Amount: {}", amount);
+    println!("  Transaction: {}", signature);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

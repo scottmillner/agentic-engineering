@@ -1,7 +1,7 @@
 use anchor_client::{solana_sdk::commitment_config::CommitmentConfig, Client, Cluster};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use solana_token_cli::{create_account, init, load_keypair, ID};
+use solana_token_cli::{create_account, init, load_keypair, mint_tokens, ID};
 use std::rc::Rc;
 
 #[derive(Parser)]
@@ -121,10 +121,7 @@ fn main() -> Result<()> {
             create_account(&program, &payer, &mint, owner.as_deref())?;
         }
         Commands::Mint { mint, to, amount } => {
-            println!("TODO: implement mint command");
-            println!("  mint: {}", mint);
-            println!("  to: {}", to);
-            println!("  amount: {}", amount);
+            mint_tokens(&program, &payer, &mint, &to, amount)?;
         }
         Commands::Transfer { mint, to, amount } => {
             println!("TODO: implement transfer command");
