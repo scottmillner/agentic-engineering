@@ -42,6 +42,9 @@ When given a command name:
 8. Once the test passes, use git tools to:
    - Create branch: implement/<command-name>
    - Commit changed files (cli/src/lib.rs, cli/src/main.rs, cli/tests/integration.rs)
+     Use conventional commits format: <type>(<scope>): <description>
+     Example: feat(cli): implement burn command
+     Types: feat, fix, refactor, test, docs
    - Push to origin
 9. Report the final result — the caller will open the PR.
 `;
