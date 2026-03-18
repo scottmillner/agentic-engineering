@@ -223,6 +223,49 @@ pub fn transfer(
     Ok(())
 }
 
+pub fn burn(
+    program: &Program<Rc<Keypair>>,
+    payer: &Keypair,
+    mint: &str,
+    amount: u64,
+) -> Result<()> {
+    let mint_pubkey = Pubkey::from_str(mint).context("Invalid mint address")?;
+
+    // Derive the payer's token account PDA — payer is the owner/signer
+    let (token_account_pubkey, _bump) = Pubkey::find_program_address(
+        &[b"token", payer.pubkey().as_ref(), mint_pubkey.as_ref()],
+        &ID,
+    );
+
+    let instruction_data = generated::burn::Burn { amount };
+    let accounts = generated::burn::Accounts {
+        mint: mint_pubkey,
+        token_account: token_account_pubkey,
+        owner: payer.pubkey(),
+    };
+
+    let instruction = Instruction {
+        program_id: ID,
+        accounts: accounts.to_account_metas(None),
+        data: instruction_data.data(),
+    };
+
+    let signature = program
+        .request()
+        .instruction(instruction)
+        .send()
+        .context("Failed to send burn transaction")?;
+
+    println!("✓ Tokens burned");
+    println!("  Token account: {}", token_account_pubkey);
+    println!("  Owner: {}", payer.pubkey());
+    println!("  Mint: {}", mint_pubkey);
+    println!("  Amount: {}", amount);
+    println!("  Transaction: {}", signature);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
