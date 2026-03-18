@@ -172,6 +172,57 @@ pub fn mint_tokens(
     Ok(())
 }
 
+pub fn transfer(
+    program: &Program<Rc<Keypair>>,
+    payer: &Keypair,
+    mint: &str,
+    to: &str,
+    amount: u64,
+) -> Result<()> {
+    let mint_pubkey = Pubkey::from_str(mint).context("Invalid mint address")?;
+    let recipient_pubkey = Pubkey::from_str(to).context("Invalid recipient address")?;
+
+    // Derive the sender's token account PDA (payer is the owner/signer)
+    let (from_token_account, _bump) = Pubkey::find_program_address(
+        &[b"token", payer.pubkey().as_ref(), mint_pubkey.as_ref()],
+        &ID,
+    );
+
+    // Derive the recipient's token account PDA
+    let (to_token_account, _bump) = Pubkey::find_program_address(
+        &[b"token", recipient_pubkey.as_ref(), mint_pubkey.as_ref()],
+        &ID,
+    );
+
+    let instruction_data = generated::transfer::Transfer { amount };
+    let accounts = generated::transfer::Accounts {
+        from: from_token_account,
+        to: to_token_account,
+        owner: payer.pubkey(),
+    };
+
+    let instruction = Instruction {
+        program_id: ID,
+        accounts: accounts.to_account_metas(None),
+        data: instruction_data.data(),
+    };
+
+    let signature = program
+        .request()
+        .instruction(instruction)
+        .send()
+        .context("Failed to send transfer transaction")?;
+
+    println!("✓ Tokens transferred");
+    println!("  From account: {}", from_token_account);
+    println!("  To account:   {}", to_token_account);
+    println!("  Recipient:    {}", recipient_pubkey);
+    println!("  Amount:       {}", amount);
+    println!("  Transaction:  {}", signature);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

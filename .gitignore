@@ -8,3 +8,5 @@ node_modules
 test-ledger
 mint-*.json
 .yarn
+agent/.env
+agent/node_modules
