@@ -2,16 +2,25 @@ import Anthropic from "@anthropic-ai/sdk";
 import "dotenv/config";
 import { executeTool, toolDefinitions } from "./tools.js";
 import { systemPrompt } from "./prompts.js";
+import { createPullRequest } from "./github.js";
 
 const client = new Anthropic();
 
-async function runAgent(command: string): Promise<void> {
+async function runAgent(command: string, issueNumber?: number): Promise<void> {
   console.log(`\n🤖 Agent starting — implementing: ${command}\n`);
+
+  const branch = `implement/${command}`;
 
   const messages: Anthropic.MessageParam[] = [
     {
       role: "user",
-      content: `Implement the "${command}" CLI command following the established pattern in this codebase.`,
+      content: `Implement the "${command}" CLI command following the established pattern in this codebase.
+
+After the test passes:
+1. Create a new branch: ${branch}
+2. Commit the changed files (cli/src/lib.rs, cli/src/main.rs, cli/tests/integration.rs)
+3. Push the branch to origin
+`,
     },
   ];
 
@@ -30,12 +39,34 @@ async function runAgent(command: string): Promise<void> {
     // Add assistant response to message history
     messages.push({ role: "assistant", content: response.content });
 
-    // If no more tool calls, we're done
+    // If no more tool calls, open the PR and we're done
     if (response.stop_reason === "end_turn") {
       const textBlock = response.content.find((b) => b.type === "text");
       if (textBlock && textBlock.type === "text") {
         console.log(`\n✅ Agent finished:\n\n${textBlock.text}\n`);
       }
+
+      const prBody = [
+        `## Summary`,
+        `Implements the \`${command}\` CLI command.`,
+        ``,
+        `## Changes`,
+        `- Added \`${command}\` function in \`cli/src/lib.rs\``,
+        `- Wired up match arm in \`cli/src/main.rs\``,
+        `- Added integration test in \`cli/tests/integration.rs\``,
+        issueNumber ? `\nCloses #${issueNumber}` : "",
+        ``,
+        `🤖 Generated with Claude Agent SDK`,
+      ].join("\n");
+
+      console.log(`\n📬 Opening PR for branch: ${branch}`);
+      const prUrl = await createPullRequest(
+        `feat(cli): implement ${command} command`,
+        prBody,
+        branch
+      );
+      console.log(`✅ PR opened: ${prUrl}\n`);
+
       break;
     }
 
@@ -49,7 +80,9 @@ async function runAgent(command: string): Promise<void> {
         block.name,
         block.input as Record<string, string>
       );
-      console.log(`[tool] → ${result.slice(0, 120)}${result.length > 120 ? "…" : ""}\n`);
+      console.log(
+        `[tool] → ${result.slice(0, 120)}${result.length > 120 ? "…" : ""}\n`
+      );
 
       toolResults.push({
         type: "tool_result",
@@ -63,15 +96,17 @@ async function runAgent(command: string): Promise<void> {
   }
 }
 
-// Entry point — read command from CLI args
+// Entry point — read command and optional issue number from CLI args
 const command = process.argv[2];
+const issueNumber = process.argv[3] ? parseInt(process.argv[3]) : undefined;
+
 if (!command) {
-  console.error("Usage: tsx src/agent.ts <command-name>");
-  console.error("Example: tsx src/agent.ts transfer");
+  console.error("Usage: tsx src/agent.ts <command-name> [issue-number]");
+  console.error("Example: tsx src/agent.ts burn 42");
   process.exit(1);
 }
 
-runAgent(command).catch((err) => {
+runAgent(command, issueNumber).catch((err) => {
   console.error("Agent error:", err);
   process.exit(1);
 });

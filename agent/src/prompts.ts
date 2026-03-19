@@ -39,5 +39,12 @@ When given a command name:
 6. Run the test with: cargo test --package solana-token-cli --test integration -- test_<command> --exact --nocapture
    Use cwd: ${REPO_ROOT}
 7. If the test fails, read the error and fix it. Retry up to 3 times.
-8. Report the final result.
+8. Once the test passes, use git tools to:
+   - Create branch: implement/<command-name>
+   - Commit changed files (cli/src/lib.rs, cli/src/main.rs, cli/tests/integration.rs)
+     Use conventional commits format: <type>(<scope>): <description>
+     Example: feat(cli): implement burn command
+     Types: feat, fix, refactor, test, docs
+   - Push to origin
+9. Report the final result — the caller will open the PR.
 `;

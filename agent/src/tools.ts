@@ -40,6 +40,46 @@ export const toolDefinitions = [
       required: ["command"],
     },
   },
+  {
+    name: "git_create_branch",
+    description: "Create and checkout a new git branch.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        branch: { type: "string", description: "Branch name to create" },
+        cwd: { type: "string", description: "Repo directory" },
+      },
+      required: ["branch", "cwd"],
+    },
+  },
+  {
+    name: "git_commit",
+    description: "Stage specific files and create a git commit.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        files: {
+          type: "string",
+          description: "Space-separated list of file paths to stage",
+        },
+        message: { type: "string", description: "Commit message" },
+        cwd: { type: "string", description: "Repo directory" },
+      },
+      required: ["files", "message", "cwd"],
+    },
+  },
+  {
+    name: "git_push",
+    description: "Push the current branch to origin.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        branch: { type: "string", description: "Branch name to push" },
+        cwd: { type: "string", description: "Repo directory" },
+      },
+      required: ["branch", "cwd"],
+    },
+  },
 ];
 
 export function executeTool(
@@ -76,6 +116,43 @@ export function executeTool(
           stderr: e.stderr ?? String(e),
           exitCode: e.status ?? 1,
         });
+      }
+    }
+    case "git_create_branch": {
+      try {
+        execSync(`git checkout -b ${input.branch}`, {
+          cwd: input.cwd,
+          encoding: "utf-8",
+        });
+        return `Branch created and checked out: ${input.branch}`;
+      } catch (e: any) {
+        return `Error creating branch: ${e.stderr ?? String(e)}`;
+      }
+    }
+    case "git_commit": {
+      try {
+        execSync(`git add ${input.files}`, {
+          cwd: input.cwd,
+          encoding: "utf-8",
+        });
+        execSync(`git commit -m "${input.message}"`, {
+          cwd: input.cwd,
+          encoding: "utf-8",
+        });
+        return `Committed: ${input.message}`;
+      } catch (e: any) {
+        return `Error committing: ${e.stderr ?? String(e)}`;
+      }
+    }
+    case "git_push": {
+      try {
+        execSync(`git push -u origin ${input.branch}`, {
+          cwd: input.cwd,
+          encoding: "utf-8",
+        });
+        return `Pushed branch: ${input.branch}`;
+      } catch (e: any) {
+        return `Error pushing: ${e.stderr ?? String(e)}`;
       }
     }
     default:
