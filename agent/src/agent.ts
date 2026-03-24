@@ -6,7 +6,7 @@ import { createPullRequest } from "./github.js";
 
 const client = new Anthropic();
 
-async function runAgent(command: string, issueNumber?: number): Promise<void> {
+export async function runAgent(command: string, issueNumber?: number): Promise<void> {
   console.log(`\n🤖 Agent starting — implementing: ${command}\n`);
 
   const branch = `implement/${command}`;
@@ -96,17 +96,20 @@ After the test passes:
   }
 }
 
-// Entry point — read command and optional issue number from CLI args
-const command = process.argv[2];
-const issueNumber = process.argv[3] ? parseInt(process.argv[3]) : undefined;
+// Only run as CLI when executed directly, not when imported by webhook.ts
+const isMain = process.argv[1]?.endsWith("agent.ts") || process.argv[1]?.endsWith("agent.js");
+if (isMain) {
+  const command = process.argv[2];
+  const issueNumber = process.argv[3] ? parseInt(process.argv[3]) : undefined;
 
-if (!command) {
-  console.error("Usage: tsx src/agent.ts <command-name> [issue-number]");
-  console.error("Example: tsx src/agent.ts burn 42");
-  process.exit(1);
+  if (!command) {
+    console.error("Usage: tsx src/agent.ts <command-name> [issue-number]");
+    console.error("Example: tsx src/agent.ts burn 42");
+    process.exit(1);
+  }
+
+  runAgent(command, issueNumber).catch((err) => {
+    console.error("Agent error:", err);
+    process.exit(1);
+  });
 }
-
-runAgent(command, issueNumber).catch((err) => {
-  console.error("Agent error:", err);
-  process.exit(1);
-});

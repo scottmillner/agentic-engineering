@@ -19,6 +19,8 @@ An AI agent that autonomously implements CLI commands for the Solana token progr
    GITHUB_TOKEN=your_github_token_here
    GITHUB_OWNER=your_github_username
    GITHUB_REPO=solana-token
+   GITHUB_WEBHOOK_SECRET=your_webhook_secret_here
+   PORT=3000
    ```
 
 ## Usage
@@ -58,3 +60,18 @@ npx tsx src/agent.ts burn 42
 | `src/tools.ts` | Tool definitions and executors (read_file, write_file, run_bash, git tools) |
 | `src/prompts.ts` | System prompt with codebase context |
 | `src/github.ts` | GitHub API client (create PR, comment on issue) |
+| `src/webhook.ts` | Hono webhook server — receives GitHub issue events |
+
+## Testing
+
+Test the webhook server locally (requires server to be running):
+
+**Terminal 1:**
+```bash
+npm run webhook
+```
+
+**Terminal 2:**
+```bash
+npx tsx tests/test-webhook.ts
+```
