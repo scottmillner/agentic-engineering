@@ -62,16 +62,57 @@ npx tsx src/agent.ts burn 42
 | `src/github.ts` | GitHub API client (create PR, comment on issue) |
 | `src/webhook.ts` | Hono webhook server — receives GitHub issue events |
 
-## Testing
+## Webhook Server
 
-Test the webhook server locally (requires server to be running):
+The webhook server receives GitHub issue events and triggers the agent automatically.
 
-**Terminal 1:**
+### Setup
+
+1. Generate a webhook secret:
+   ```bash
+   openssl rand -hex 32
+   ```
+   Add to `agent/.env` as `GITHUB_WEBHOOK_SECRET`
+
+2. Install ngrok: https://ngrok.com/download
+   Then authenticate:
+   ```bash
+   ngrok config add-authtoken <your_ngrok_token>
+   ```
+   Get your token at: https://dashboard.ngrok.com/get-started/your-authtoken
+
+3. Configure GitHub webhook:
+   - Go to: `https://github.com/<owner>/<repo>/settings/hooks/new`
+   - **Payload URL**: `https://<your-ngrok-url>/webhook`
+   - **Content type**: `application/json`
+   - **Secret**: your `GITHUB_WEBHOOK_SECRET`
+   - **Events**: Issues only
+   - **SSL verification**: Enable
+
+### Running
+
+**Terminal 1** — start the webhook server:
 ```bash
 npm run webhook
 ```
 
-**Terminal 2:**
+**Terminal 2** — expose it via ngrok:
 ```bash
+ngrok http 3000
+```
+
+### Triggering the agent
+
+Open a GitHub issue with:
+- **Title**: `implement <command> command` (e.g. `implement balance command`)
+- **Label**: `implement-command`
+
+The agent will implement the command, run tests, and open a PR automatically.
+
+### Dry run mode
+
+Set `DRY_RUN=true` in `.env` to test the webhook pipeline without triggering the agent:
+```bash
+npm run webhook  # with DRY_RUN=true
 npx tsx tests/test-webhook.ts
 ```
