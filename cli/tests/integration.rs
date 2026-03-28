@@ -7,7 +7,7 @@ use anchor_client::{
 };
 use solana_streamer::socket::SocketAddrSpace;
 use solana_test_validator::{TestValidatorGenesis, UpgradeableProgramInfo};
-use solana_token_cli::{burn, create_account, init, mint_info, mint_tokens, transfer, ID};
+use solana_token_cli::{balance, burn, create_account, init, mint_info, mint_tokens, transfer, ID};
 use std::io::Write;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -358,4 +358,77 @@ fn test_mint_info() {
     assert_eq!(mint_account.authority, payer.pubkey(), "authority should be the payer");
     assert_eq!(mint_account.decimals, 6, "decimals should be 6");
     assert_eq!(mint_account.total_supply, 500, "total supply should be 500");
+}
+
+#[test]
+fn test_balance() {
+    let (validator, payer) = setup_validator();
+    let payer = Rc::new(payer);
+    let program = setup_program(&validator, payer.clone());
+
+    // Generate a mint keypair and save to a temp file so we know its pubkey
+    let mint_keypair = Keypair::new();
+    let mint_pubkey = mint_keypair.pubkey();
+    let mint_bytes = mint_keypair.to_bytes();
+    let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+    temp_file
+        .write_all(
+            serde_json::to_string(&mint_bytes.to_vec())
+                .unwrap()
+                .as_bytes(),
+        )
+        .unwrap();
+    let mint_path = temp_file.path().to_str().unwrap().to_string();
+
+    // Initialize the mint
+    let init_result = init(&program, &payer, 9, Some(mint_path));
+    assert!(init_result.is_ok(), "init failed: {:?}", init_result.err());
+
+    // Create a token account for the payer (owner defaults to payer)
+    let create_result = create_account(&program, &payer, &mint_pubkey.to_string(), None);
+    assert!(
+        create_result.is_ok(),
+        "create_account failed: {:?}",
+        create_result.err()
+    );
+
+    // Mint 750 tokens to the payer's token account
+    let mint_result = mint_tokens(
+        &program,
+        &payer,
+        &mint_pubkey.to_string(),
+        &payer.pubkey().to_string(),
+        750,
+    );
+    assert!(
+        mint_result.is_ok(),
+        "mint_tokens failed: {:?}",
+        mint_result.err()
+    );
+
+    // Check balance via the CLI function — owner defaults to payer
+    let result = balance(&program, &payer, &mint_pubkey.to_string(), None);
+    assert!(result.is_ok(), "balance failed: {:?}", result.err());
+
+    // Cross-check the on-chain account directly to verify the reported amount
+    let (token_account_pubkey, _bump) = solana_sdk::pubkey::Pubkey::find_program_address(
+        &[b"token", payer.pubkey().as_ref(), mint_pubkey.as_ref()],
+        &ID,
+    );
+    let token_account: solana_token::TokenAccount =
+        program.account(token_account_pubkey).unwrap();
+    assert_eq!(token_account.amount, 750, "balance should be 750 after minting");
+
+    // Also verify balance works when an explicit owner address is provided
+    let result_explicit = balance(
+        &program,
+        &payer,
+        &mint_pubkey.to_string(),
+        Some(&payer.pubkey().to_string()),
+    );
+    assert!(
+        result_explicit.is_ok(),
+        "balance (explicit owner) failed: {:?}",
+        result_explicit.err()
+    );
 }
