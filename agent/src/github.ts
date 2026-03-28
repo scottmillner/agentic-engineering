@@ -1,9 +1,28 @@
 import { Octokit } from "@octokit/rest";
+import { createAppAuth } from "@octokit/auth-app";
+import { readFileSync } from "fs";
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 const owner = process.env.GITHUB_OWNER!;
 const repo = process.env.GITHUB_REPO!;
+
+// Authenticates as the GitHub App bot — used for PR reviews so the reviewer
+// is a separate identity from the author and GitHub allows the approval.
+async function createAppOctokit(): Promise<Octokit> {
+  const privateKey = readFileSync(process.env.GITHUB_APP_PRIVATE_KEY_PATH!, "utf-8");
+  const appId = parseInt(process.env.GITHUB_APP_ID!);
+
+  const auth = createAppAuth({ appId, privateKey });
+
+  // Get the installation ID for this repo
+  const appOctokit = new Octokit({ authStrategy: createAppAuth, auth: { appId, privateKey } });
+  const { data: installation } = await appOctokit.apps.getRepoInstallation({ owner, repo });
+
+  // Exchange for an installation access token
+  const { token } = await auth({ type: "installation", installationId: installation.id });
+  return new Octokit({ auth: token });
+}
 
 export async function createPullRequest(
   title: string,
@@ -63,7 +82,8 @@ export async function submitReview(
   event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT",
   body: string
 ): Promise<void> {
-  await octokit.pulls.createReview({
+  const appOctokit = await createAppOctokit();
+  await appOctokit.pulls.createReview({
     owner,
     repo,
     pull_number: prNumber,
