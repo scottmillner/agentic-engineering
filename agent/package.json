@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "agent": "tsx src/agent.ts",
-    "webhook": "tsx src/webhook.ts"
+    "webhook": "tsx src/webhook.ts",
+    "issues": "tsx src/issue-agent.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
