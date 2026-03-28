@@ -266,6 +266,23 @@ pub fn burn(
     Ok(())
 }
 
+pub fn mint_info(program: &Program<Rc<Keypair>>, mint: &str) -> Result<()> {
+    let mint_pubkey = Pubkey::from_str(mint).context("Invalid mint address")?;
+
+    // Fetch the on-chain TokenMint account — no transaction needed, this is a read
+    let mint_account: solana_token::TokenMint = program
+        .account(mint_pubkey)
+        .context("Failed to fetch mint account")?;
+
+    println!("✓ Mint info");
+    println!("  Mint address:  {}", mint_pubkey);
+    println!("  Authority:     {}", mint_account.authority);
+    println!("  Total supply:  {}", mint_account.total_supply);
+    println!("  Decimals:      {}", mint_account.decimals);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
