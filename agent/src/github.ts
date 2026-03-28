@@ -48,6 +48,30 @@ export async function listOpenIssues(): Promise<{ title: string; number: number 
   return data.map((i) => ({ title: i.title, number: i.number }));
 }
 
+export async function getPullRequestDiff(prNumber: number): Promise<string> {
+  const { data } = await octokit.pulls.get({
+    owner,
+    repo,
+    pull_number: prNumber,
+    mediaType: { format: "diff" },
+  });
+  return data as unknown as string;
+}
+
+export async function submitReview(
+  prNumber: number,
+  event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT",
+  body: string
+): Promise<void> {
+  await octokit.pulls.createReview({
+    owner,
+    repo,
+    pull_number: prNumber,
+    event,
+    body,
+  });
+}
+
 export async function ensureLabelExists(
   name: string,
   color: string = "0075ca",

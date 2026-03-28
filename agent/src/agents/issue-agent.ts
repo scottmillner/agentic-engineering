@@ -9,8 +9,8 @@
  */
 import { readFileSync } from "fs";
 import "dotenv/config";
-import { createIssue, ensureLabelExists, listOpenIssues } from "./github.js";
-import { REPO_ROOT } from "./prompts.js";
+import { createIssue, ensureLabelExists, listOpenIssues } from "../github.js";
+import { REPO_ROOT } from "../prompts.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 

@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "agent": "tsx src/agent.ts",
+    "agent": "tsx src/agents/agent.ts",
     "webhook": "tsx src/webhook.ts",
-    "issues": "tsx src/issue-agent.ts"
+    "issues": "tsx src/agents/issue-agent.ts",
+    "review": "tsx src/agents/review-agent.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
