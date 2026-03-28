@@ -97,9 +97,9 @@ app.post("/webhook", async (c) => {
   console.log(`[webhook] Triggering orchestrator for command: ${command} (issue #${issueNumber})`);
 
   // Run the orchestrator in the background — don't block the HTTP response
-  orchestrate(command, issueNumber).catch((err) => {
-    console.error(`[webhook] Orchestrator error for ${command}:`, err);
-  });
+  orchestrate(command, issueNumber)
+    .then(() => console.log(`[webhook] ✅ Orchestrator completed for: ${command}`))
+    .catch((err) => console.error(`[webhook] Orchestrator error for ${command}:`, err));
 
   return c.json({ ok: true, command, issueNumber });
 });
