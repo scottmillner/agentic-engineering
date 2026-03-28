@@ -29,8 +29,14 @@ ${reviewRules}
 
 const reviewToolDefinitions = [...toolDefinitions, submitReviewToolDefinition];
 
-export async function runReviewAgent(prNumber: number): Promise<void> {
+export interface ReviewResult {
+  approved: boolean;
+  body: string;
+}
+
+export async function runReviewAgent(prNumber: number): Promise<ReviewResult> {
   console.log(`\n🔍 Review agent starting — PR #${prNumber}\n`);
+  let result: ReviewResult = { approved: false, body: "" };
 
   const diff = await getPullRequestDiff(prNumber);
 
@@ -56,7 +62,7 @@ export async function runReviewAgent(prNumber: number): Promise<void> {
 
     if (response.stop_reason === "end_turn") {
       console.log("\n✅ Review agent finished\n");
-      break;
+      return result;
     }
 
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
@@ -65,23 +71,26 @@ export async function runReviewAgent(prNumber: number): Promise<void> {
 
       console.log(`[tool] ${block.name}(${JSON.stringify(block.input)})`);
 
-      let result: string;
       if (block.name === "submit_review") {
         const { event, body } = block.input as { event: "APPROVE" | "REQUEST_CHANGES"; body: string };
         await submitReview(prNumber, event, body);
-        result = `Review submitted: ${event}`;
+        result = { approved: event === "APPROVE", body };
+        const toolResult = `Review submitted: ${event}`;
         console.log(`\n📝 Review submitted: ${event}\n`);
+        toolResults.push({ type: "tool_result", tool_use_id: block.id, content: toolResult });
       } else {
-        result = executeTool(block.name, block.input as Record<string, string>);
+        const toolResult = executeTool(block.name, block.input as Record<string, string>);
+        console.log(`[tool] → ${toolResult.slice(0, 120)}${toolResult.length > 120 ? "…" : ""}\n`);
+        toolResults.push({ type: "tool_result", tool_use_id: block.id, content: toolResult });
       }
-
-      console.log(`[tool] → ${result.slice(0, 120)}${result.length > 120 ? "…" : ""}\n`);
-
-      toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
     }
 
     messages.push({ role: "user", content: toolResults });
   }
+
+  // Unreachable — while(true) always exits via return above.
+  // Required to satisfy TypeScript's exhaustive return check.
+  throw new Error("Review agent loop ended without returning a result");
 }
 
 // Run as CLI: npx tsx src/review-agent.ts <pr-number>

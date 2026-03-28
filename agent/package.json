@@ -7,7 +7,8 @@
     "agent": "tsx src/agents/agent.ts",
     "webhook": "tsx src/webhook.ts",
     "issues": "tsx src/agents/issue-agent.ts",
-    "review": "tsx src/agents/review-agent.ts"
+    "review": "tsx src/agents/review-agent.ts",
+    "orchestrate": "tsx src/orchestrator.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

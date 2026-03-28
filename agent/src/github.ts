@@ -10,7 +10,7 @@ export async function createPullRequest(
   body: string,
   branch: string,
   base: string = "main"
-): Promise<string> {
+): Promise<{ url: string; number: number }> {
   const { data } = await octokit.pulls.create({
     owner,
     repo,
@@ -19,7 +19,7 @@ export async function createPullRequest(
     head: branch,
     base,
   });
-  return data.html_url;
+  return { url: data.html_url, number: data.number };
 }
 
 export async function commentOnIssue(
@@ -69,6 +69,19 @@ export async function submitReview(
     pull_number: prNumber,
     event,
     body,
+  });
+}
+
+
+export async function addLabelToPR(
+  prNumber: number,
+  label: string
+): Promise<void> {
+  await octokit.issues.addLabels({
+    owner,
+    repo,
+    issue_number: prNumber,
+    labels: [label],
   });
 }
 

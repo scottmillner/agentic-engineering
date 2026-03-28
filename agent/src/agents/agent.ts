@@ -6,22 +6,43 @@ import { createPullRequest } from "../github.js";
 
 const client = new Anthropic();
 
-export async function runAgent(command: string, issueNumber?: number): Promise<void> {
-  console.log(`\n🤖 Agent starting — implementing: ${command}\n`);
+export interface AgentResult {
+  prNumber: number;
+  branch: string;
+}
 
-  const branch = `implement/${command}`;
+export interface FixOptions {
+  prNumber: number;
+  branch: string;
+  reviewComments: string;
+}
 
-  const messages: Anthropic.MessageParam[] = [
-    {
-      role: "user",
-      content: `Implement the "${command}" CLI command following the established pattern in this codebase.
+export async function runAgent(
+  command: string,
+  issueNumber?: number,
+  fix?: FixOptions
+): Promise<AgentResult> {
+  const branch = fix?.branch ?? `implement/${command}`;
+  const mode = fix ? "fix" : "implement";
+
+  console.log(`\n🤖 Agent starting — ${mode}: ${command}\n`);
+
+  const userMessage = fix
+    ? `The PR for the "${command}" command received review feedback. Fix the issues and push to the existing branch: ${branch}.
+
+Review comments:
+${fix.reviewComments}
+
+Push to the existing branch — do NOT create a new branch.`
+    : `Implement the "${command}" CLI command following the established pattern in this codebase.
 
 After the test passes:
 1. Create a new branch: ${branch}
 2. Commit the changed files (cli/src/lib.rs, cli/src/main.rs, cli/tests/integration.rs)
-3. Push the branch to origin
-`,
-    },
+3. Push the branch to origin`;
+
+  const messages: Anthropic.MessageParam[] = [
+    { role: "user", content: userMessage },
   ];
 
   // Agentic loop — keep going until the model stops calling tools
@@ -59,15 +80,20 @@ After the test passes:
         `🤖 Generated with Claude Agent SDK`,
       ].join("\n");
 
+      // In fix mode the PR already exists — no need to open a new one
+      if (fix) {
+        console.log(`\n✅ Fixes pushed to branch: ${branch}\n`);
+        return { prNumber: fix.prNumber, branch };
+      }
+
       console.log(`\n📬 Opening PR for branch: ${branch}`);
-      const prUrl = await createPullRequest(
+      const pr = await createPullRequest(
         `feat(cli): implement ${command} command`,
         prBody,
         branch
       );
-      console.log(`✅ PR opened: ${prUrl}\n`);
-
-      break;
+      console.log(`✅ PR opened: ${pr.url}\n`);
+      return { prNumber: pr.number, branch };
     }
 
     // Execute all tool calls and collect results
@@ -94,6 +120,10 @@ After the test passes:
     // Feed results back to the model
     messages.push({ role: "user", content: toolResults });
   }
+
+  // Unreachable — while(true) always exits via return above.
+  // Required to satisfy TypeScript's exhaustive return check.
+  throw new Error("Agent loop ended without returning a result");
 }
 
 // Only run as CLI when executed directly, not when imported by webhook.ts

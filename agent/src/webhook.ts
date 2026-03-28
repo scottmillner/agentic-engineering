@@ -3,17 +3,8 @@ import { serve } from "@hono/node-server";
 import "dotenv/config";
 import { createHmac, timingSafeEqual } from "crypto";
 import { z } from "zod";
-import { runAgent } from "./agents/agent.js";
-import { runReviewAgent } from "./agents/review-agent.js";
+import { orchestrate } from "./orchestrator.js";
 import { commentOnIssue } from "./github.js";
-
-const prPayloadSchema = z.object({
-  action: z.string(),
-  pull_request: z.object({
-    number: z.number(),
-    title: z.string(),
-  }),
-});
 
 const issuePayloadSchema = z.object({
   action: z.string(),
@@ -59,32 +50,6 @@ app.post("/webhook", async (c) => {
 
   const event = c.req.header("x-github-event");
 
-  // Handle pull_request events — trigger the review agent
-  if (event === "pull_request") {
-    const parsed = prPayloadSchema.safeParse(JSON.parse(rawBody));
-    if (!parsed.success) return c.json({ ok: true, skipped: true });
-
-    const { action, pull_request } = parsed.data;
-    if (action !== "opened") return c.json({ ok: true, skipped: true });
-
-    // Only review PRs opened by the implementation agent
-    if (!pull_request.title.startsWith("feat(cli):")) {
-      return c.json({ ok: true, skipped: true });
-    }
-
-    if (DRY_RUN) {
-      console.log(`[webhook] DRY RUN — would review PR #${pull_request.number}`);
-      return c.json({ ok: true, dryRun: true, prNumber: pull_request.number });
-    }
-
-    console.log(`[webhook] Triggering review agent for PR #${pull_request.number}`);
-    runReviewAgent(pull_request.number).catch((err) => {
-      console.error(`[webhook] Review agent error:`, err);
-    });
-
-    return c.json({ ok: true, prNumber: pull_request.number });
-  }
-
   if (event !== "issues") {
     return c.json({ ok: true, skipped: true });
   }
@@ -129,11 +94,11 @@ app.post("/webhook", async (c) => {
     return c.json({ ok: true, dryRun: true, command, issueNumber });
   }
 
-  console.log(`[webhook] Triggering agent for command: ${command} (issue #${issueNumber})`);
+  console.log(`[webhook] Triggering orchestrator for command: ${command} (issue #${issueNumber})`);
 
-  // Run the agent in the background — don't block the HTTP response
-  runAgent(command, issueNumber).catch((err) => {
-    console.error(`[webhook] Agent error for ${command}:`, err);
+  // Run the orchestrator in the background — don't block the HTTP response
+  orchestrate(command, issueNumber).catch((err) => {
+    console.error(`[webhook] Orchestrator error for ${command}:`, err);
   });
 
   return c.json({ ok: true, command, issueNumber });
