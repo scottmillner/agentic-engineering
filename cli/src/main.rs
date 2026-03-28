@@ -1,7 +1,7 @@
 use anchor_client::{solana_sdk::commitment_config::CommitmentConfig, Client, Cluster};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use solana_token_cli::{burn, create_account, init, load_keypair, mint_tokens, transfer, ID};
+use solana_token_cli::{burn, create_account, init, load_keypair, mint_info, mint_tokens, transfer, ID};
 use std::rc::Rc;
 
 #[derive(Parser)]
@@ -135,8 +135,7 @@ fn main() -> Result<()> {
             println!("  owner: {:?}", owner);
         }
         Commands::MintInfo { mint } => {
-            println!("TODO: implement mint-info command");
-            println!("  mint: {}", mint);
+            mint_info(&program, &mint)?;
         }
     }
 
