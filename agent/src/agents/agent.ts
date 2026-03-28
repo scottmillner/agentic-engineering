@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import "dotenv/config";
-import { executeTool, toolDefinitions } from "./tools.js";
-import { systemPrompt } from "./prompts.js";
-import { createPullRequest } from "./github.js";
+import { executeTool, toolDefinitions } from "../tools.js";
+import { systemPrompt } from "../prompts.js";
+import { createPullRequest } from "../github.js";
 
 const client = new Anthropic();
 
@@ -97,7 +97,7 @@ After the test passes:
 }
 
 // Only run as CLI when executed directly, not when imported by webhook.ts
-const isMain = process.argv[1]?.endsWith("agent.ts") || process.argv[1]?.endsWith("agent.js");
+const isMain = process.argv[1]?.includes("agents/agent");
 if (isMain) {
   const command = process.argv[2];
   const issueNumber = process.argv[3] ? parseInt(process.argv[3]) : undefined;

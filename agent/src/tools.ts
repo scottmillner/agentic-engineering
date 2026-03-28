@@ -82,6 +82,27 @@ export const toolDefinitions = [
   },
 ];
 
+// Exported separately — only used by review-agent, not all agents
+export const submitReviewToolDefinition = {
+  name: "submit_review",
+  description: "Submit the final PR review decision.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      event: {
+        type: "string",
+        enum: ["APPROVE", "REQUEST_CHANGES"],
+        description: "The review outcome",
+      },
+      body: {
+        type: "string",
+        description: "The review comment explaining the decision",
+      },
+    },
+    required: ["event", "body"],
+  },
+};
+
 export function executeTool(
   name: string,
   input: Record<string, string>
