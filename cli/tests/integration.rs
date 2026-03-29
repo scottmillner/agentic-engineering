@@ -133,8 +133,7 @@ fn test_mint_tokens() {
         &ID,
     );
 
-    let token_account: solana_token::TokenAccount =
-        program.account(token_account_pubkey).unwrap();
+    let token_account: solana_token::TokenAccount = program.account(token_account_pubkey).unwrap();
     assert_eq!(token_account.amount, 1000);
 }
 
@@ -223,8 +222,7 @@ fn test_transfer() {
         &ID,
     );
 
-    let sender_account: solana_token::TokenAccount =
-        program.account(sender_token_account).unwrap();
+    let sender_account: solana_token::TokenAccount = program.account(sender_token_account).unwrap();
     let recipient_account: solana_token::TokenAccount =
         program.account(recipient_token_account).unwrap();
 
@@ -283,11 +281,7 @@ fn test_burn() {
 
     // Burn 300 tokens from the payer's token account
     let burn_result = burn(&program, &payer, &mint_pubkey.to_string(), 300);
-    assert!(
-        burn_result.is_ok(),
-        "burn failed: {:?}",
-        burn_result.err()
-    );
+    assert!(burn_result.is_ok(), "burn failed: {:?}", burn_result.err());
 
     // Derive the payer's token account PDA to verify balance
     let (token_account_pubkey, _bump) = solana_sdk::pubkey::Pubkey::find_program_address(
@@ -295,13 +289,18 @@ fn test_burn() {
         &ID,
     );
 
-    let token_account: solana_token::TokenAccount =
-        program.account(token_account_pubkey).unwrap();
-    assert_eq!(token_account.amount, 700, "token balance should be 700 after burning 300");
+    let token_account: solana_token::TokenAccount = program.account(token_account_pubkey).unwrap();
+    assert_eq!(
+        token_account.amount, 700,
+        "token balance should be 700 after burning 300"
+    );
 
     // Also verify the mint's total_supply was reduced
     let mint_account: solana_token::TokenMint = program.account(mint_pubkey).unwrap();
-    assert_eq!(mint_account.total_supply, 700, "total supply should be 700 after burning 300");
+    assert_eq!(
+        mint_account.total_supply, 700,
+        "total supply should be 700 after burning 300"
+    );
 }
 
 #[test]
@@ -360,10 +359,7 @@ fn test_mint_info() {
         payer.pubkey(),
         "authority should be the payer"
     );
-    assert_eq!(
-        mint_account.decimals, 6,
-        "decimals should be 6"
-    );
+    assert_eq!(mint_account.decimals, 6, "decimals should be 6");
     assert_eq!(
         mint_account.total_supply, 500,
         "total_supply should be 500 after minting"
