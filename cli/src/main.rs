@@ -1,7 +1,9 @@
 use anchor_client::{solana_sdk::commitment_config::CommitmentConfig, Client, Cluster};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use solana_token_cli::{burn, create_account, init, load_keypair, mint_info, mint_tokens, transfer, ID};
+use solana_token_cli::{
+    balance, burn, create_account, init, load_keypair, mint_info, mint_tokens, transfer, ID,
+};
 use std::rc::Rc;
 
 #[derive(Parser)]
@@ -130,9 +132,7 @@ fn main() -> Result<()> {
             burn(&program, &payer, &mint, amount)?;
         }
         Commands::Balance { mint, owner } => {
-            println!("TODO: implement balance command");
-            println!("  mint: {}", mint);
-            println!("  owner: {:?}", owner);
+            balance(&program, &payer, &mint, owner.as_deref())?;
         }
         Commands::MintInfo { mint } => {
             mint_info(&program, &mint)?;

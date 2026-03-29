@@ -7,7 +7,7 @@ use anchor_client::{
 };
 use solana_streamer::socket::SocketAddrSpace;
 use solana_test_validator::{TestValidatorGenesis, UpgradeableProgramInfo};
-use solana_token_cli::{burn, create_account, init, mint_info, mint_tokens, transfer, ID};
+use solana_token_cli::{balance, burn, create_account, init, mint_info, mint_tokens, transfer, ID};
 use std::io::Write;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -133,8 +133,7 @@ fn test_mint_tokens() {
         &ID,
     );
 
-    let token_account: solana_token::TokenAccount =
-        program.account(token_account_pubkey).unwrap();
+    let token_account: solana_token::TokenAccount = program.account(token_account_pubkey).unwrap();
     assert_eq!(token_account.amount, 1000);
 }
 
@@ -223,8 +222,7 @@ fn test_transfer() {
         &ID,
     );
 
-    let sender_account: solana_token::TokenAccount =
-        program.account(sender_token_account).unwrap();
+    let sender_account: solana_token::TokenAccount = program.account(sender_token_account).unwrap();
     let recipient_account: solana_token::TokenAccount =
         program.account(recipient_token_account).unwrap();
 
@@ -283,11 +281,7 @@ fn test_burn() {
 
     // Burn 300 tokens from the payer's token account
     let burn_result = burn(&program, &payer, &mint_pubkey.to_string(), 300);
-    assert!(
-        burn_result.is_ok(),
-        "burn failed: {:?}",
-        burn_result.err()
-    );
+    assert!(burn_result.is_ok(), "burn failed: {:?}", burn_result.err());
 
     // Derive the payer's token account PDA to verify balance
     let (token_account_pubkey, _bump) = solana_sdk::pubkey::Pubkey::find_program_address(
@@ -295,13 +289,18 @@ fn test_burn() {
         &ID,
     );
 
-    let token_account: solana_token::TokenAccount =
-        program.account(token_account_pubkey).unwrap();
-    assert_eq!(token_account.amount, 700, "token balance should be 700 after burning 300");
+    let token_account: solana_token::TokenAccount = program.account(token_account_pubkey).unwrap();
+    assert_eq!(
+        token_account.amount, 700,
+        "token balance should be 700 after burning 300"
+    );
 
     // Also verify the mint's total_supply was reduced
     let mint_account: solana_token::TokenMint = program.account(mint_pubkey).unwrap();
-    assert_eq!(mint_account.total_supply, 700, "total supply should be 700 after burning 300");
+    assert_eq!(
+        mint_account.total_supply, 700,
+        "total supply should be 700 after burning 300"
+    );
 }
 
 #[test]
@@ -360,12 +359,100 @@ fn test_mint_info() {
         payer.pubkey(),
         "authority should be the payer"
     );
-    assert_eq!(
-        mint_account.decimals, 6,
-        "decimals should be 6"
-    );
+    assert_eq!(mint_account.decimals, 6, "decimals should be 6");
     assert_eq!(
         mint_account.total_supply, 500,
         "total_supply should be 500 after minting"
+    );
+}
+
+#[test]
+fn test_balance() {
+    let (validator, payer) = setup_validator();
+    let payer = Rc::new(payer);
+    let program = setup_program(&validator, payer.clone());
+
+    // Generate a mint keypair and save to a temp file
+    let mint_keypair = Keypair::new();
+    let mint_pubkey = mint_keypair.pubkey();
+    let mint_bytes = mint_keypair.to_bytes();
+    let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+    temp_file
+        .write_all(
+            serde_json::to_string(&mint_bytes.to_vec())
+                .unwrap()
+                .as_bytes(),
+        )
+        .unwrap();
+    let mint_path = temp_file.path().to_str().unwrap().to_string();
+
+    // Initialize the mint
+    let init_result = init(&program, &payer, 9, Some(mint_path));
+    assert!(init_result.is_ok(), "init failed: {:?}", init_result.err());
+
+    // Create a token account for the payer
+    let create_result = create_account(&program, &payer, &mint_pubkey.to_string(), None);
+    assert!(
+        create_result.is_ok(),
+        "create_account failed: {:?}",
+        create_result.err()
+    );
+
+    // Balance should be 0 immediately after account creation (owner defaults to payer)
+    let balance_result = balance(&program, &payer, &mint_pubkey.to_string(), None);
+    assert!(
+        balance_result.is_ok(),
+        "balance (pre-mint) failed: {:?}",
+        balance_result.err()
+    );
+    assert_eq!(
+        balance_result.unwrap(),
+        0,
+        "balance should be 0 before minting"
+    );
+
+    // Mint 750 tokens to the payer's token account
+    let mint_result = mint_tokens(
+        &program,
+        &payer,
+        &mint_pubkey.to_string(),
+        &payer.pubkey().to_string(),
+        750,
+    );
+    assert!(
+        mint_result.is_ok(),
+        "mint_tokens failed: {:?}",
+        mint_result.err()
+    );
+
+    // Balance should now reflect the minted amount (owner defaults to payer)
+    let balance_result = balance(&program, &payer, &mint_pubkey.to_string(), None);
+    assert!(
+        balance_result.is_ok(),
+        "balance (post-mint) failed: {:?}",
+        balance_result.err()
+    );
+    assert_eq!(
+        balance_result.unwrap(),
+        750,
+        "balance should be 750 after minting"
+    );
+
+    // Also verify balance works when owner is supplied explicitly
+    let balance_explicit = balance(
+        &program,
+        &payer,
+        &mint_pubkey.to_string(),
+        Some(&payer.pubkey().to_string()),
+    );
+    assert!(
+        balance_explicit.is_ok(),
+        "balance (explicit owner) failed: {:?}",
+        balance_explicit.err()
+    );
+    assert_eq!(
+        balance_explicit.unwrap(),
+        750,
+        "explicit-owner balance should also be 750"
     );
 }

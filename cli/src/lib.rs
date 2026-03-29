@@ -266,6 +266,38 @@ pub fn burn(
     Ok(())
 }
 
+pub fn balance(
+    program: &Program<Rc<Keypair>>,
+    payer: &Keypair,
+    mint: &str,
+    owner: Option<&str>,
+) -> Result<u64> {
+    let mint_pubkey = Pubkey::from_str(mint).context("Invalid mint address")?;
+    let owner_pubkey = match owner {
+        Some(o) => Pubkey::from_str(o).context("Invalid owner address")?,
+        None => payer.pubkey(),
+    };
+
+    // Derive the owner's token account PDA — must match seeds in the on-chain program
+    let (token_account_pubkey, _bump) = Pubkey::find_program_address(
+        &[b"token", owner_pubkey.as_ref(), mint_pubkey.as_ref()],
+        &ID,
+    );
+
+    // Fetch the token account state directly — no transaction needed
+    let token_account: solana_token::TokenAccount = program
+        .account(token_account_pubkey)
+        .context("Failed to fetch token account — has it been created?")?;
+
+    println!("✓ Token account balance");
+    println!("  Token account: {}", token_account_pubkey);
+    println!("  Owner: {}", owner_pubkey);
+    println!("  Mint: {}", mint_pubkey);
+    println!("  Balance: {}", token_account.amount);
+
+    Ok(token_account.amount)
+}
+
 pub fn mint_info(program: &Program<Rc<Keypair>>, mint: &str) -> Result<()> {
     let mint_pubkey = Pubkey::from_str(mint).context("Invalid mint address")?;
 
