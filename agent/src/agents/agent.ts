@@ -17,7 +17,7 @@ export interface FixOptions {
   reviewComments: string;
 }
 
-export async function runAgent(
+export async function runCodingAgent(
   command: string,
   issueNumber?: number,
   fix?: FixOptions
@@ -138,7 +138,7 @@ if (isMain) {
     process.exit(1);
   }
 
-  runAgent(command, issueNumber).catch((err) => {
+  runCodingAgent(command, issueNumber).catch((err) => {
     console.error("Agent error:", err);
     process.exit(1);
   });

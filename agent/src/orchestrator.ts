@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { runAgent } from "./agents/agent.js";
+import { runCodingAgent } from "./agents/agent.js";
 import { runReviewAgent } from "./agents/review-agent.js";
 import { commentOnIssue, addLabelToPR, ensureLabelExists } from "./github.js";
 
@@ -9,7 +9,7 @@ export async function orchestrate(command: string, issueNumber?: number): Promis
   console.log(`\n🎯 Orchestrator starting — command: ${command}\n`);
 
   // Step 1: implement the command and open a PR
-  const { prNumber, branch } = await runAgent(command, issueNumber);
+  const { prNumber, branch } = await runCodingAgent(command, issueNumber);
 
   let loops = 0;
 
@@ -40,6 +40,6 @@ export async function orchestrate(command: string, issueNumber?: number): Promis
 
     // Step 3: fix the issues and push to the existing branch
     console.log(`\n🔧 Fixing issues on branch: ${branch}\n`);
-    await runAgent(command, issueNumber, { prNumber, branch, reviewComments: body });
+    await runCodingAgent(command, issueNumber, { prNumber, branch, reviewComments: body });
   }
 }
