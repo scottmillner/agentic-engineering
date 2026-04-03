@@ -127,14 +127,14 @@ After the test passes:
 }
 
 // Only run as CLI when executed directly, not when imported by webhook.ts
-const isMain = process.argv[1]?.includes("agents/agent");
+const isMain = process.argv[1]?.includes("agents/coding-agent");
 if (isMain) {
   const command = process.argv[2];
   const issueNumber = process.argv[3] ? parseInt(process.argv[3]) : undefined;
 
   if (!command) {
-    console.error("Usage: tsx src/agent.ts <command-name> [issue-number]");
-    console.error("Example: tsx src/agent.ts burn 42");
+    console.error("Usage: tsx src/agents/coding-agent.ts <command-name> [issue-number]");
+    console.error("Example: tsx src/agents/coding-agent.ts burn 42");
     process.exit(1);
   }
 

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { runCodingAgent } from "./agents/agent.js";
+import { runCodingAgent } from "./agents/coding-agent.js";
 import { runReviewAgent } from "./agents/review-agent.js";
 import { commentOnIssue, addLabelToPR, ensureLabelExists } from "./github.js";
 

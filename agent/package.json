@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "agent": "tsx src/agents/agent.ts",
+    "agent": "tsx src/agents/coding-agent.ts",
     "webhook": "tsx src/webhook.ts",
     "issues": "tsx src/agents/issue-agent.ts",
     "review": "tsx src/agents/review-agent.ts",

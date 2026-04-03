@@ -19,33 +19,34 @@ The engineer's value is in designing systems, defining quality standards, and bu
 ## The Pipeline
 
 ```
-Developer opens GitHub issue: "implement balance command"
+Issue Agent scans the codebase for unimplemented features
+    → opens a GitHub issue for each one
     ↓
-Webhook server receives the event
+Webhook server receives the issue event
     ↓
 Orchestrator coordinates the agents
     ↓
-Implementation Agent (Claude SDK)
+Coding Agent (Claude SDK)
     → reads the codebase
     → implements the feature
     → runs integration tests
     → commits and pushes to a branch
     → opens a pull request
     ↓
-Review Agent (Claude SDK)
+Review Agent (GitHub App bot)
     → reads the diff
     → evaluates against defined rules
     → approves or requests changes
     ↓
 If changes requested:
-    → Implementation Agent reads feedback and fixes
+    → Coding Agent reads feedback and fixes
     → Review Agent reviews again (max 2 loops)
     → If still failing: labels PR "needs-human-review"
     ↓
 Developer reviews the PR and merges
 ```
 
-The developer's only manual steps are: open an issue, review a PR, merge.
+The developer's only manual step is reviewing and merging the PR.
 
 ---
 
@@ -54,7 +55,7 @@ The developer's only manual steps are: open an issue, review a PR, merge.
 | Agent | Type | Purpose |
 |---|---|---|
 | **Issue Creator** | Deterministic script | Scans codebase for unimplemented features, opens GitHub issues |
-| **Implementation Agent** | Claude SDK agentic loop | Implements features end-to-end — reads code, writes code, runs tests, commits |
+| **Coding Agent** | Claude SDK agentic loop | Implements features end-to-end — reads code, writes code, runs tests, commits |
 | **Review Agent** | Claude SDK agentic loop | Reviews PRs against defined rules, approves or requests changes |
 | **Orchestrator** | Coordinator | Runs the implementation → review → fix loop, enforces max iterations |
 | **Webhook Server** | Hono HTTP server | Receives GitHub events, triggers the orchestrator |
