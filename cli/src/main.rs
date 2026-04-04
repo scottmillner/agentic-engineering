@@ -135,7 +135,7 @@ fn main() -> Result<()> {
             balance(&program, &payer, &mint, owner.as_deref())?;
         }
         Commands::MintInfo { mint } => {
-            mint_info(&program, &mint)?;
+            // TODO: implement mint-info command
         }
     }
 
