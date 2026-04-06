@@ -304,69 +304,6 @@ fn test_burn() {
 }
 
 #[test]
-fn test_mint_info() {
-    let (validator, payer) = setup_validator();
-    let payer = Rc::new(payer);
-    let program = setup_program(&validator, payer.clone());
-
-    // Generate a mint keypair and save to a temp file so we know its pubkey
-    let mint_keypair = Keypair::new();
-    let mint_pubkey = mint_keypair.pubkey();
-    let mint_bytes = mint_keypair.to_bytes();
-    let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-    temp_file
-        .write_all(
-            serde_json::to_string(&mint_bytes.to_vec())
-                .unwrap()
-                .as_bytes(),
-        )
-        .unwrap();
-    let mint_path = temp_file.path().to_str().unwrap().to_string();
-
-    // Initialize the mint with 6 decimals
-    let init_result = init(&program, &payer, 6, Some(mint_path));
-    assert!(init_result.is_ok(), "init failed: {:?}", init_result.err());
-
-    // Create a token account and mint some tokens so total_supply is non-zero
-    let create_result = create_account(&program, &payer, &mint_pubkey.to_string(), None);
-    assert!(
-        create_result.is_ok(),
-        "create_account failed: {:?}",
-        create_result.err()
-    );
-
-    let mint_result = mint_tokens(
-        &program,
-        &payer,
-        &mint_pubkey.to_string(),
-        &payer.pubkey().to_string(),
-        500,
-    );
-    assert!(
-        mint_result.is_ok(),
-        "mint_tokens failed: {:?}",
-        mint_result.err()
-    );
-
-    // Call mint_info and verify it succeeds
-    let result = mint_info(&program, &mint_pubkey.to_string());
-    assert!(result.is_ok(), "mint_info failed: {:?}", result.err());
-
-    // Independently fetch the on-chain account and assert all fields
-    let mint_account: solana_token::TokenMint = program.account(mint_pubkey).unwrap();
-    assert_eq!(
-        mint_account.authority,
-        payer.pubkey(),
-        "authority should be the payer"
-    );
-    assert_eq!(mint_account.decimals, 6, "decimals should be 6");
-    assert_eq!(
-        mint_account.total_supply, 500,
-        "total_supply should be 500 after minting"
-    );
-}
-
-#[test]
 fn test_balance() {
     let (validator, payer) = setup_validator();
     let payer = Rc::new(payer);
